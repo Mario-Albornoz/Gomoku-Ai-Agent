@@ -19,8 +19,21 @@ class GomokuAgent:
         self.opponent_symbol = opponent_symbol
         self.defensive_weight = 0
 
-    def play(self, board):
-        return None
+    def play(self, board) -> tuple[int, int]:
+        best_move = tuple()
+        candidates = self.generate_move(board)
+
+        highest_heuristic_value = 0
+        for candidate in candidates:
+            temp_board = board.copy()
+            temp_board[candidate.i][candidate.j] = self.agent_symbol
+            heuristic_score = self.evaluate_board(temp_board)
+
+            if heuristic_score > highest_heuristic_value:
+                highest_heuristic_value = heuristic_score
+                best_move = candidate.i , candidate.j
+
+        return best_move
 
     def generate_move(self, board, distance: int = 1) -> set[Candidate]:
         candidates = set()
@@ -40,6 +53,16 @@ class GomokuAgent:
                             candidate = Candidate(ni, nj, 0)
                             candidates.add(candidate)
         return candidates
+
+    def evaluate_board(self, board) -> int:
+        lines = self.get_lines(board)
+        score = 0
+
+        for line in lines:
+            score += self.evaluate_line(line, self.agent_symbol)
+            score -= self.evaluate_line(line, self.opponent_symbol)
+
+        return score
 
     def get_lines(self, board) -> list:
         lines = []

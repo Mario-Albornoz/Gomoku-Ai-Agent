@@ -8,8 +8,9 @@ app = flask.Flask(__name__)
 import teams.dumb_agent
 import teams.dumber_agent
 import teams.dummkopf
+import teams.TestAgent
 
-p1 = teams.dumber_agent.GomokuAgent(gomoku_game.PLAYER_1_SYMBOL, gomoku_game.BLANK_SYMBOL, gomoku_game.PLAYER_2_SYMBOL)
+p1 = teams.TestAgent.GomokuAgent(gomoku_game.PLAYER_1_SYMBOL, gomoku_game.BLANK_SYMBOL, gomoku_game.PLAYER_2_SYMBOL)
 p2 = teams.dumber_agent.GomokuAgent(gomoku_game.PLAYER_2_SYMBOL, gomoku_game.BLANK_SYMBOL, gomoku_game.PLAYER_1_SYMBOL)
 game = gomoku_game.GomokuGame(p1, p2)
 
