@@ -1,5 +1,4 @@
 import numpy as np
-import math
 from gomoku_game import BOARD_SIZE
 
 
