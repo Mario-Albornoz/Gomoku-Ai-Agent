@@ -1,6 +1,12 @@
 import numpy as np
 from gomoku_game import BOARD_SIZE
 
+class Node:
+    def __init__(self, i:int, j:int, heuristic: int, children:list):
+        self.i = i
+        self.j = j
+        self.heuristic = heuristic
+        self.children = children
 
 class GomokuAgent:
     def __init__(self, agent_symbol, blank_symbol, opponent_symbol):
@@ -8,6 +14,9 @@ class GomokuAgent:
         self.agent_symbol = agent_symbol
         self.blank_symbol = blank_symbol
         self.opponent_symbol = opponent_symbol
+
+
+
 
     def play(self, board):
         moves = self.generate_moves(board)
@@ -26,7 +35,7 @@ class GomokuAgent:
                 best_move = move
         return best_move
 
-    def generate_moves(self, board, distance=1):
+    def generate_moves(self, board, distance=1) -> list:
         candidates = set()
         occupied = np.argwhere(board != self.blank_symbol)
 
@@ -81,3 +90,21 @@ class GomokuAgent:
             score += line_str.count(pattern) * value
 
         return score
+
+    def build_tree(self, current_board, depth: int, is_agent_turn=True) -> Node:
+        if depth == 0:
+            score = self.evaluate_board(current_board)
+            return Node(None, None, score, [])
+
+        moves = self.generate_moves(current_board)
+        children = []
+
+        for move in moves:
+            temp_board = current_board.copy()
+            temp_board[move] = self.agent_symbol if is_agent_turn else self.opponent_symbol
+            child_node = self.build_tree(temp_board, depth - 1, not is_agent_turn)
+            child_node.i, child_node.j = move
+            children.append(child_node)
+
+        score = self.evaluate_board(current_board)
+        return Node(None, None, score, children)
