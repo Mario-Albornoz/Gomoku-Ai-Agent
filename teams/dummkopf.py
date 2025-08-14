@@ -61,7 +61,7 @@ class GomokuAgent:
             score -= self.evaluate_line(line, self.opponent_symbol)
         return score
 
-    def get_all_lines(self, board):
+    def get_all_lines(self, board) -> list :
         lines = []
 
         for i in range(BOARD_SIZE):
@@ -74,16 +74,27 @@ class GomokuAgent:
 
         return lines
 
-    def evaluate_line(self, line, player):
+    def evaluate_line(self, line, player:int)-> int:
         score = 0
         line_str = ''.join(str(int(cell)) for cell in line)
 
         patterns = {
-            str(player) * 5: 100000,     # win
-            f'0{str(player)*4}0': 10000,  # open 4
+            #For these examples assume player symbol = 1
+            str(player) * 5: 100000, ## win
+            "11111" : 100000,
+            f'0{str(player)*4}0': 10000,
+            "0" + str(player)*4 + "0": 10000, # open 4
+            "011110": 10000,
             f'0{str(player)*3}0': 500,    # open 3
+            "0" + str(player)*3 + "0":500,
+
             f'0{str(player)*2}0': 100,    # open 2
             str(player): 10              # single stone
+
+            #Write found patterns and assign a score to each one
+            #run these commands
+            # pip install flask
+            # flask run
         }
 
         for pattern, value in patterns.items():
