@@ -80,41 +80,39 @@ class GomokuAgent:
 
         patterns = {
             #For these examples assume player symbol = 1
-            str(player) * 5: 100000, ## five in a row 
+            str(player) * 5: 1000000, ## five in a row 
             
-            f'0{str(player)*4}0': 10000,    # open 4
+            f'0{str(player)*4}0': 100000,    # open 4
 
-            f'{str(player)*3}0{str(player)}' :5000, # broken fours, 11101
-            f'{str(player)}0{str(player)*3}' :5000, # 10111
-            f'{str(player)*2}0{str(player)*2}' :5000, # 11011
+            f'{str(player)*3}0{str(player)}' :70000, # broken fours, 11101
+            f'{str(player)}0{str(player)*3}' :70000, # 10111
+            f'{str(player)*2}0{str(player)*2}' :70000, # 11011
 
             f'0{str(player)*4}2': 10000, # closed 4 (right), 011112
             f'2{str(player)*4}': 10000, # closed 4 (left), 211110
 
 
-            f'0{str(player)*3}0': 600,    # open 3
-            f'0{str(player)*2}0{str(player)}' :300, # broken 3, 01101
-            f'{str(player)}0{str(player)*2}0' :300, # 10110
+            f'0{str(player)*3}0': 10000,    # open 3
+            f'0{str(player)*2}0{str(player)}' :5000, # broken 3, 01101
+            f'{str(player)}0{str(player)*2}0' :5000, # 10110
 
-            f'{str(player)}0{str(player)*2}2' :200, #  broken closed 3, 10112
-            f'2{str(player)*2}0{str(player)}' :200, # 21101
+            f'{str(player)}0{str(player)*2}2' :600, #  broken closed 3, 10112
+            f'2{str(player)*2}0{str(player)}' :600, # 21101
 
             f'0{str(player)*3}2': 500, # closed 3 (right) 01112
             f'2{str(player)*3}0': 500, # closed 3 (left) 21110
 
 
-            f'0{str(player)*2}0': 50, # open 2
-            f'0{str(player)*2}2': 25, # closed 2 (right) 0112
-            f'2{str(player)*2}0': 25, # closed 2 (left) 2110
-            f'20{str(player)*2}0': 25, # closed 2 (left) 20110
-            f'0{str(player)*2}02': 25, # closed 2 (right) 01102
+            f'0{str(player)*2}0': 200, # open 2
+            f'0{str(player)*2}2': 10, # closed 2 (right) 0112
+            f'2{str(player)*2}0': 10, # closed 2 (left) 2110
+            f'20{str(player)*2}0': 10, # closed 2 (left) 20110
+            f'0{str(player)*2}02': 10, # closed 2 (right) 01102
 
-            f'{str(player)}0{str(player)}': 20, # broken 2, 101
+            f'0{str(player)}0{str(player)}0': 50, # broken 2, 01010
+            
 
-            str(player): 10  # single stone
-
-            # idk how to add the double three and the double four patterns the intersections
-            # the dummkopf wins with these but i dont think it can win againts others agents
+            str(player): 10,  # single stone
 
 
 
