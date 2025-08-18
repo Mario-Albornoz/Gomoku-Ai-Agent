@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 from typing import List, Tuple, Optional
 from gomoku_game import BOARD_SIZE
@@ -39,6 +41,7 @@ class GomokuAgent:
         """
         Returns the (i, j) move chosen by alpha–beta search.
         """
+        start_time = time.time_ns()
         if depth is None:
             depth = self.DEFAULT_DEPTH
 
@@ -60,6 +63,10 @@ class GomokuAgent:
         if best_move is None:
             moves = self.generate_moves(board, distance=self.NEIGHBOR_DISTANCE)
             return moves[0] if moves else (BOARD_SIZE // 2, BOARD_SIZE // 2)
+
+        end_time = time.time_ns()
+        total_time = (end_time - start_time) / 1, 000, 000
+        print(f"test agent took: {str(total_time)}")
         return best_move
 
     # -------- Alpha–Beta Search --------
