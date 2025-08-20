@@ -1,4 +1,6 @@
 import time
+from copy import deepcopy
+from venv import create
 
 import numpy as np
 from typing import List, Tuple, Optional
@@ -34,7 +36,7 @@ class GomokuAgent:
     WIN_5 = 1_000_000
     OPEN_4 = 100_000
     CLOSED_4 = 12_000
-    OPEN_3 = 2_000
+    OPEN_3 = 2_200
     BROKEN_3 = 1_200
     CLOSED_3 = 200
     OPEN_2 = 80
@@ -48,7 +50,7 @@ class GomokuAgent:
         self.opponent_symbol = int(opponent_symbol)
 
         # ---- Zobrist hashing setup ----
-        rng = np.random.default_rng(12345)  # fixed seed for reproducibility
+        rng = np.random.default_rng(12345)
         self.zobrist_table = rng.integers(
             low=1, high=2**63,
             size=(BOARD_SIZE, BOARD_SIZE, 3),  # 3 possible states per cell
@@ -62,15 +64,22 @@ class GomokuAgent:
         if depth is None:
             depth = self.DEFAULT_DEPTH
 
-        # If board empty: play center
         if not np.any(board != self.blank_symbol):
             c = BOARD_SIZE // 2
             return (c, c)
 
-        # Compute initial hash
-        self.current_hash = self.compute_hash(board)
 
-        # Run alpha-beta
+        attacker_symbol = self.agent_symbol
+        defender_symbol = self.opponent_symbol
+
+        # tss_result = self.tss_search(board, attacker_symbol, defender_symbol)
+        # if tss_result:
+        #     best_move = tss_result[0]
+        #     print("TSS found forced win sequence:", tss_result)
+        #     return best_move
+
+
+        self.current_hash = self.compute_hash(board)
         value, best_move = self._alphabeta(board, depth, float("-inf"), float("inf"), True)
 
         if best_move is None:
@@ -78,14 +87,13 @@ class GomokuAgent:
             return moves[0] if moves else (BOARD_SIZE // 2, BOARD_SIZE // 2)
 
         end_time = time.time_ns()
-        total_time = (end_time - start_time) /1,000,000
+        total_time = (end_time - start_time) / 1_000_000
+        print(f"Play took: {total_time} ms")
 
-        print(f"Play Dummmkopf took: {str(total_time)}")
         return best_move
 
     # -------- Hashing Utilities --------
     def piece_index(self, val: int) -> int:
-        """Map cell value -> index for zobrist_table"""
         if val == self.blank_symbol:
             return 0
         elif val == self.agent_symbol:
@@ -94,7 +102,6 @@ class GomokuAgent:
             return 2
 
     def compute_hash(self, board: np.ndarray) -> int:
-        """Compute full board hash"""
         h = np.int64(0)
         for i in range(BOARD_SIZE):
             for j in range(BOARD_SIZE):
@@ -126,10 +133,11 @@ class GomokuAgent:
 
     # -------- Alpha–Beta Search --------
     def _alphabeta(self, board: np.ndarray, depth: int, alpha: float, beta: float, maximizing: bool) -> Tuple[float, Optional[Tuple[int, int]]]:
-        # Check transposition table
+        global child_hash
         if self.current_hash in self.transposition_table:
             entry = self.transposition_table[self.current_hash]
             if entry["depth"] >= depth:
+                print("Hashed Entry Returned")
                 return entry["value"], entry["best_move"]
 
         terminal, term_score = self._terminal_evaluation(board)
@@ -178,7 +186,7 @@ class GomokuAgent:
 
                 child_value, _ = self._alphabeta(board, depth - 1, alpha, beta, True)
 
-                child_hash = self.current_hash  # capture child hash
+                child_hash = self.current_hash
 
                 board[i, j] = self.blank_symbol
                 self.current_hash = prev_hash
@@ -191,7 +199,6 @@ class GomokuAgent:
                 if alpha >= beta:
                     break
 
-        # Store in TT (now child_hash is always defined correctly)
         self.transposition_table[child_hash] = {
             "depth": depth,
             "value": value,
@@ -199,6 +206,49 @@ class GomokuAgent:
         }
 
         return value, best_move
+
+    def tss_search(self, board, attacker_symbol, defender_symbol, depth=0, max_depth=10):
+        if depth >= max_depth:
+            return False
+
+        threats = self.identify_threats(board, attacker_symbol)
+
+        for t in threats:
+            if t["type"] == "double":
+                return [t["move"]]
+
+        for t in threats:
+            if t["type"]== "single":
+                move = t["move"]
+
+                new_board = deepcopy(board)
+                new_board[move[0], move[1]] = attacker_symbol
+
+                defense_moves = self.get_defensive_moves(new_board, defender_symbol, move, attacker_symbol)
+
+                if not defense_moves:
+
+                    return [move]
+
+                all_fail = True
+                for d in defense_moves:
+                    defended_board = deepcopy(new_board)
+                    defended_board[d[0], d[1]] = defender_symbol
+
+                    result = self.tss_search(defended_board, attacker_symbol, defender_symbol, depth + 1, max_depth)
+
+                    if result:
+                        return [move, d] + result
+                    else:
+                        all_fail = False
+
+
+                if all_fail:
+                    return [move]
+
+            return []
+
+
 
     # -------- Move Generation & Ordering --------
     def generate_moves(self, board: np.ndarray, distance: int = 1):
@@ -222,6 +272,116 @@ class GomokuAgent:
             return [tuple(idx) for idx in map(tuple, empties)]
 
         return list(candidates)
+
+    def get_defensive_moves(self, board, defender_symbol, last_attacker_move, attacker_symbol, blank_symbol=0):
+        defense_moves = []
+        lines = self._lines_through_cell(board, last_attacker_move)
+
+        for line, index_map in lines:
+            if self.creates_open_x(line, attacker_symbol, 4):
+                defense_moves.extend(self._open_end_blocks_in_line(line, attacker_symbol, 4, index_map))
+
+            elif self.creates_open_x(line, attacker_symbol, 3):
+                defense_moves.extend(self._open_end_blocks_in_line(line, attacker_symbol, 3, index_map))
+
+        defense_moves = list(set(defense_moves))
+        return defense_moves
+
+    def identify_threats(self, board: np.ndarray, attacker_symbol: int):
+        threats = []
+        moves = self.generate_moves(board)
+        for (i, j) in moves:
+            temp_board = deepcopy(board)
+            temp_board[i , j] = attacker_symbol
+            lines = self._all_lines(temp_board)
+
+            threat_count = 0
+
+            for line in lines:
+                if self.creates_open_x(line, attacker_symbol, 4):
+                    threat_count += 1
+                if self.creates_open_x(line,attacker_symbol,3):
+                    threat_count += 1
+
+            if threat_count == 1:
+                threats.append({"move": (i,j), "type": "single" ,"threat_count":threat_count})
+            if threat_count >= 2:
+                threats.append({"move": (i,j), "type": "double" ,"threat_count": threat_count})
+        return threats
+
+    #x represents the number of symbols in a row in an open pattern
+    def creates_open_x(self, line, attacker: int, x: int):
+        window_size = x + 2
+        for start in range(len(line) - window_size + 1):
+            window = line[start:start + window_size]
+
+            if window[0] == self.blank_symbol and window[-1] == self.blank_symbol:
+                if np.sum(window[1:-1] == attacker) == x and np.all(window[1:-1] == attacker):
+                    return True
+        return False
+
+    def _lines_through_cell(self, board: np.ndarray, cell: Tuple[int, int]):
+        i, j = cell
+        n = board.shape[0]
+        out = []
+
+        row_map = [(i, y) for y in range(n)]
+        out.append((board[i, :].copy(), row_map))
+
+        col_map = [(x, j) for x in range(n)]
+        out.append((board[:, j].copy(), col_map))
+
+
+        d_min = -min(i, j)
+        d_max = min(n - 1 - i, n - 1 - j)
+        diag_coords = [(i + d, j + d) for d in range(d_min, d_max + 1)]
+        diag_line = np.array([board[x, y] for x, y in diag_coords], dtype=board.dtype)
+        out.append((diag_line, diag_coords))
+
+
+        d_min = -min(i, n - 1 - j)
+        d_max = min(n - 1 - i, j)
+        anti_coords = [(i + d, j - d) for d in range(d_min, d_max + 1)]
+        anti_line = np.array([board[x, y] for x, y in anti_coords], dtype=board.dtype)
+        out.append((anti_line, anti_coords))
+
+        return out
+
+    def _open_end_blocks_in_line(
+            self,
+            line: np.ndarray,
+            attacker_symbol: int,
+            x: int,
+            index_map: List[Tuple[int, int]]
+    ) -> List[Tuple[int, int]]:
+
+        blocks = []
+        B = self.blank_symbol
+        w = x + 2
+
+        L = len(line)
+        for start in range(0, L - w + 1):
+            window = line[start:start + w]
+            if window[0] == B and window[-1] == B and np.all(window[1:-1] == attacker_symbol):
+                blocks.append(index_map[start])
+                blocks.append(index_map[start + w - 1])
+        return blocks
+
+    def get_defense_moves(
+            self,
+            board: np.ndarray,
+            last_attacker_move: Tuple[int, int],
+            attacker_symbol: int
+    ) -> List[Tuple[int, int]]:
+        defenses = set()
+
+        for line, idx_map in self._lines_through_cell(board, last_attacker_move):
+            for x in (4, 3):
+                blocks = self._open_end_blocks_in_line(line, attacker_symbol, x, idx_map)
+                for b in blocks:
+                    defenses.add(b)
+
+        return list(defenses)
 
     def _order_moves(self, board: np.ndarray, moves: List[Tuple[int, int]], maximizing: bool) -> List[Tuple[int, int]]:
         scored: List[Tuple[float, Tuple[int, int]]] = []
