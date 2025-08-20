@@ -88,7 +88,6 @@ class GomokuAgent:
 
         end_time = time.time_ns()
         total_time = (end_time - start_time) / 1_000_000
-        print(f"Play took: {total_time} ms")
 
         return best_move
 
@@ -137,7 +136,6 @@ class GomokuAgent:
         if self.current_hash in self.transposition_table:
             entry = self.transposition_table[self.current_hash]
             if entry["depth"] >= depth:
-                print("Hashed Entry Returned")
                 return entry["value"], entry["best_move"]
 
         terminal, term_score = self._terminal_evaluation(board)
